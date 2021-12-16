@@ -1,0 +1,217 @@
+---
+title: "Quantmod Package Notes"
+author: "Liam P. Reiner"
+date: "9/19/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Resource: <https://blog.quantinsti.com/a-guide-on-r-quantmod-package-how-to-get-started/> 
+
+```{r}
+library(quantmod)
+getSymbols(Symbols = "NRXP", src = "yahoo")
+head(NRXP)
+```
+
+
+Closing price for reference and calculate various technical indicators based on it:
+
+```{r}
+NeuroRX_closeprice = Cl(NRXP)
+
+plot(NeuroRX_closeprice)
+```
+
+Visualizing the Chart (Daily Volume)
+
+```{r}
+chartSeries(NRXP, TA=NULL)
+barChart(NRXP)
+```
+
+Plotting Based Upon the Close Price (Line Plot and Histogram)
+
+```{r}
+NRXP_closeprice = Cl(NRXP) 
+
+plot(NRXP_closeprice)
+hist(NRXP[,4]) #This command plots the histogram of closing price of apple stock
+hist(NRXP[,4], main = "Neuro RX Closing Price") #The histogram of closing price of apple stock with the heading “Apple Close”
+```
+
+Plots with Techincal Indicators (i.e. Bollinger Bands and DEMA (Double Exponential Moving Average))
+
+```{r}
+chartSeries(NRXP)
+addMACD() # adds moving average convergence divergence signals to the apple stock price
+```
+
+*Bollinger Bands are a type of statistical chart characterizing the prices and volatility over time of a financial instrument or commodity, using a formulaic method propounded by John Bollinger in the 1980s 
+*Financial traders employ these charts as a methodical tool to inform trading decisions, control automated trading systems, or as a component of technical analysis
+
+```{r}
+chartSeries(NRXP)
+addBBands()
+```
+
+Double Exponential Moving Average
+
+*Traders have relied on moving averages to help pinpoint high probability trading entry points and profitable exits for many years. 
+*A well-known problem with moving averages, however, is the serious lag that is present in most types of moving averages.
+*The double exponential moving average was developed by Patrick Mulloy in an attempt to reduce the amount of lag time found in traditional moving averages.
+
+```{r}
+chartSeries(NRXP)
+addDEMA()
+```
+
+
+Total Returns that Would have been earned by investing in NRXP
+```{r}
+allReturns(AAPL)
+```
+
+### Week 5 QuantMod Notes
+
+Building the Financial Model
+
+```{r}
+##specifyModel(formula, na.rm=TRUE)
+```
+
+*Formula: An object of class formula (or one that can be coerced to that class): a symbolic description of the model to be fitted. The details of model specifcation are given under Details.
+*As financial models may include a variety of financial and economic indicators, each differing in source, frequency, and/or class, a single mechanism to specify sources is included within a call to `specifyModel`. See `getModelData` for details of how this process works.
+*All symbols are first retrieved from the global environment, without inheritence. If an object is not found in the global environment, it is added to a list of objects to load through the getSymbols function.
+
+#### buildModel Function
+
+```{r}
+getSymbols('AAPL',src='yahoo')
+q.model = specifyModel(Next(OpCl(AAPL)) ~ Lag(OpHi(AAPL),0:3))
+buildModel(q.model,method='lm',training.per=c('2000-08-01','2018-08-01'))
+
+```
+
+
+
+#### Simulate Trading of Fitted quantmod Object
+
+*Given a fitted model, tradeModel calculates the signal generated over a given historical period, then applies specified trade.rule to calculate and return a tradeLog object
+
+```{r}
+tradeModel(q.model, signal.threshold = c(0, 0))
+```
+
+* X: a quantmod object from buildModel
+
+
+#### Using What we have learned and Using Packages outside of QuantMod for Portfolio Analytics
+
+<https://towardsdatascience.com/how-to-measure-stock-portfolio-performance-using-r-847c992195c2>
+
+```{r}
+library(PerformanceAnalytics)
+library(quantmod)
+library(ggplot2)
+library(xts)
+library(zoo)
+library(tidyverse)
+library(dplyr)
+library(PortfolioAnalytics)
+```
+
+What we are assuming:
+*Stocks weight in the portfolio is the same for every enterprise.
+*Analysis based on the historical adjusted closing price data from 1st January 2013 to 26th July 2020.
+*Risk-Free Rate: 4.5%
+*Portfolio rebalancing quarterly
+
+```{r}
+setDefaults(getSymbols.yahoo, from = as.Date('2020/01/01'), to= as.Date('2021/01/01'))
+RUSS2000 = c('AMC','NVAX','GME','RH','DAR','DECK','PENN','NTLA','NRXP',
+                  'BLDR','CROX','MRTX','TTEK','OVV','SWAV','BBIO','APPN')
+weight = rep(1/length(RUSS2000), length(RUSS2000)) ##Assumes the weighting of every stock is the same (i.e. 1)
+getSymbols(RUSS2000)
+
+
+setDefaults(getSymbols.yahoo, from = as.Date('2013/01/01'), to= as.Date('2020/07/26')) #Set GetSymbols default parameter such as Data Source and Time Periods 
+
+#IDX- BUMN20 Symbol List
+IDXBUMN20 = c('ANTM.JK','BBNI.JK','BBRI.JK','BBTN.JK','BJBR.JK','BMRI.JK','ELSA.JK','JSMR.JK','KAEF.JK',
+                  'PGAS.JK','PTBA.JK','PTPP.JK','SMGR.JK','TINS.JK','TLKM.JK','WIKA.JK','WSKT.JK')
+
+weight = rep(1/length(IDXBUMN20), length(IDXBUMN20)) #Define Weight for every stock in Portfolio
+#Import Stock Price from yahoo Finance
+getSymbols(IDXBUMN20)
+```
+
+
+
+```{r}
+Index <- list(AMC,NVAX,GME,RH,DAR,DECK,PENN,NTLA,NRXP,
+                  BLDR,CROX,MRTX,TTEK,OVV,SWAV,BBIO,APPN)
+names(Index) <- RUSS2000
+Index <- lapply(Index, '[', i =,j = 6) #Select only Adjusted Close Price
+Index <- do.call(cbind.data.frame, Index) #List To Dataframe
+names(Index) <- RUSS2000 #Change Colnames
+
+Index <- as.xts(Index)
+```
+
+
+
+```{r}
+Index <- list(ANTM.JK,BBNI.JK,BBRI.JK,BBTN.JK,BJBR.JK,BMRI.JK,ELSA.JK,JSMR.JK,KAEF.JK,
+                  PGAS.JK,PTBA.JK,PTPP.JK,SMGR.JK,TINS.JK,TLKM.JK,WIKA.JK,WSKT.JK)
+Indexnames(Index) <- IDXBUMN20
+Index <- lapply(Index, '[', i =,j = 6) #Select only Adjusted Close Price
+Index <- do.call(cbind.data.frame, Index) #List To Dataframe
+names(Index) <- IDXBUMN20 #Change Colnames
+
+Index <- as.xts(Index)
+```
+
+
+### Creating the Analysis 
+
+*Look at every stock performance in term of their reward and risk in annualized return
+*Investors want to see if their investments are well-rewarded compared to its risk, and the Sharpe Ratio is a way that can measure it all
+  *Higher Sharpe ratio means our investments are well-rewarded compared to the risk that we have during the investing period
+
+```{r}
+Index_return <- Return.calculate(Index)
+
+#Annualized Performance with Risk Free Rate 4.5%
+performance_table <- as.data.frame(table.AnnualizedReturns(Index_return, Rf = 0.05/279.8))
+performance_table <- rownames_to_column(performance_table)
+names(performance_table)[1] <- 'Performance'
+
+#Tidying Annualized Performance Dataframe
+performance_df <- performance_table %>% 
+  gather(key = 'Code', value = 'Values', -Performance) %>% 
+  spread(key = Performance, value = Values) %>%
+  rename('Annualized_Return' = 'Annualized Return', 'Annualized_Sharpe' = 'Annualized Sharpe (Rf=4.5%)','Annualized_StdDev' = 'Annualized Std Dev' ) %>%
+  select(Code, Annualized_Return, Annualized_StdDev, Annualized_Sharpe)
+```
+
+
+###Calculating Portfolio Returns
+
+Plots Produced:
+*Cumulative Return: Time series plot that shows how much return we got from our portfolio.
+*Daily Return: Time series plot that displays our portfolio daily return.
+*Drawdown: Time series plot displays the distance between the peak and its bottom pit and how long the time is needed to regain its value
+
+```{r}
+Portfolio_Return <- Return.portfolio(Index_return, weights = weight, rebalance_on = 'quarters')
+charts.PerformanceSummary(Portfolio_Return, main = 'Portfolio Performance Summary')
+```
+
+*From the cumulative return chart, we know our portfolio will still have more than 100% return until the 26th of July despite the fact that some stocks have negative returns and coronavirus effects that mostly disrupt every stock market activity in the world
+*From the daily return chart, we will get information about which period our portfolio return fluctuated so much and using this information we can develop an insight about how the major events in certain period can disrupt stock market transaction and make a plan if there will be any other major events in the future
+*From the drawdown chart, we gain the knowledge about how our portfolio performs against downtrend and how long it can recover so we can have a proper strategy on how we hold the stocks if in the future downtrends are happen

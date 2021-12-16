@@ -1,0 +1,61 @@
+---
+title: "Untitled"
+author: "Liam P. Reiner"
+date: "9/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+###Installing Packages
+
+```{r}
+##install.packages("shiny")
+library(shiny)
+library(forecast)
+library(readr)
+library(mosaic)
+library(dplyr)
+library(ts343)
+```
+
+
+### Creating App Directory and and File
+
+```{r}
+ui <- fluidPage(
+  "Hello, world!"
+)
+server <- function(input, output, session) {
+}
+shinyApp(ui, server)
+```
+
+
+
+### Static Graph of Apple Stock Prices Using Holt-Winter Smoothing
+
+```{r}
+AAPL <- read.csv("AAPL.csv")
+Apple = ts(AAPL$Close, start = 1980, frequency = 365)
+
+modApple=hw(Apple,initial="simple",h=365,level=0.95)
+summary(modApple)
+sesplot(modApple,include=365, main = "Apple Inc. (NAS: AAPL) Closing Stock Price Since 1980")
+```
+
+
+```{r}
+ui <- fluidPage(
+  textInput("name", "What's your name?"),
+  textOutput("greeting")
+)
+
+server <- function(input, output, session) {
+  output$greeting <- renderText({
+    paste0("Hello ", input$name, "!")
+  })
+}
+```

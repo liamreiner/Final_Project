@@ -1,0 +1,30 @@
+---
+title: "Shiny App Introductory Notes"
+author: "Liam P. Reiner"
+date: "9/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+###Installing Packages
+
+```{r}
+install.packages("shiny")
+library(shiny)
+library(tidyverse)
+```
+
+
+### Creating App Directory and and File
+
+```{r}
+ui <- fluidPage(
+  "Hello, world!"
+)
+server <- function(input, output, session) {
+}
+shinyApp(ui, server)
+```
